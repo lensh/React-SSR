@@ -3,6 +3,8 @@ import { Route } from 'react-router-dom'
 import Index from './container/index' // 引入两个react组件
 import About from './container/about'
 import User from './container/user'
+import NotFound from './container/notfound'
+//import './App.css';
 // export default (
 //     <div>
 //         <Route path="/" exact component={Index}></Route>
@@ -16,7 +18,7 @@ export default [
         path: '/',
         key: 'index',
         component: Index,
-        // exact: true
+        exact: true
     },
     {
         path: '/about',
@@ -28,6 +30,12 @@ export default [
         path: '/user',
         key: 'user',
         component: User,
+        exact: true
+    },
+    {
+        path: '/notfound',
+        key:'notfound',
+        component: NotFound,
         exact: true
     }
 ]

@@ -414,9 +414,11 @@ app.listen(9001, () => {
   console.log('监听9001端口');
 })
 ```
-## 8、异常处理和请求转发
-### 异常处理
-header页面接口报错，其它页面也能显示正常。解决方案：在axios里面需要捕获错误
+### 8、异常处理和请求转发
+#### 异常处理
+header页面接口报错，其它页面也能显示正常。解决方案：
+
+（1）在axios里面需要捕获错误
 ```js
 export const getUserInfo = () => {
     return (dispatch) => {
@@ -430,20 +432,124 @@ export const getUserInfo = () => {
     }
 }
 ```
-### 请求转发
+（2）服务端给每个loadData包装成新的Promise
+```js
+if (match) {
+    const { loadData } = route.component;
+    if (loadData) {
+      // 规避报错
+      const promise = new Promise((resolve, reject) => {
+        loadData(store).then(resolve).catch(resolve)
+      });
+      promises.push(promise);
+    }
+  }
+```
+#### 请求转发
 每次让服务端请求数据（转发），不需要客户端去请求数据,避免跨域。解决方案：使用```http-proxy-middleware```
 ```js
 // 使用http-proxy-middleware进行请求转发，防止出现跨域的问题
 const proxy = require('http-proxy-middleware')
 app.use('/api/*', proxy({ target: 'http://localhost:8082', changeOrigin: true }));
+```
+### 9、将axios和redux结合
+（1）首先在store.js里面，创建服务端和客户端的实例，然后传入thunk.withExtraArgument的参数里面
+```js
+// 引入axios
+import axios from 'axios'
 
-// const match = matchPath(req.url, route);
-// if (match && route.component.loadData) {
-//   promises.push(route.component.loadData(store))
-// }
+const serverAxios = axios.create({
+    baseURL: 'http://localhost:8081'
+})
 
-// 取消客户端拉取数据的行为，全部由服务端拉取
-if (route.component.loadData) {
-  promises.push(route.component.loadData(store))
+const clientAxios = axios.create({
+    baseURL: '/'
+})
+
+// 获取客户端的store
+export const getClientStore = () => {
+    // 通过window对象来获取服务端获取的数据
+    const defaultStore = window.__store ? window.__store : {};
+    console.log('客户端defaultStore', defaultStore);
+    return createStore(reducers, defaultStore, applyMiddleware(thunk.withExtraArgument(clientAxios)))
+}
+// 获取服务端的store
+export const getServerStore = () => {
+    return createStore(reducers, applyMiddleware(thunk.withExtraArgument(serverAxios)))
 }
 ```
+（2）index.js里面使用$axios即可
+```js
+export const getIndexList = () => {
+    return (dispatch, getState, $axios) => {
+        return $axios.get('/api/course/list').then(res => {
+            const { list } = res.data
+            dispatch({ type: GET_LIST, list })
+        }).catch(e => {
+            // 在这里需要捕获错误，才不会出现所有页面都挂了的情况
+            console.log(e)
+        })
+    }
+}
+```
+### 10、css处理
+用style-loader和css-loader，服务端需要用isomorphic-style-loader
+### 11、错误页面状态码支持
+### 12、放弃SEO的降级渲染的实现
+（1）server/index.js，服务端判断是否需要进行csr渲染，需要的话，就读取html模板文件
+```js
+function csrRender(res) {
+  const filePath = path.resolve(process.cwd(), 'public/index.csr.html');
+  return res.send(fs.readFileSync(filePath,'utf-8'));
+}
+
+// 使用*监听所有路由
+app.get('*', (req, res) => {
+  if (req.query.mode == 'csr') {
+    console.log('csr参数开启')
+    return csrRender(res);
+  }
+  //省略.....
+```
+（2）client/index.js，客户端判断是否有window.__store变量，有的话用hydrate，没有的话用render
+```js
+if (window.__store) {
+    ReactDom.hydrate(page, document.getElementById("root"))
+} else {
+    ReactDom.render(page, document.getElementById("root"))
+}
+```
+（3）webpack.client.js，用html-webpack-plugin将bundle注入到HTML模板里面
+```js
+ plugins:[
+    new HtmlWebpackPlugin({
+        filename:'index.csr.html',
+        template:'src/index.csr.html',
+        inject:true
+    })
+  ]
+```
+### 13、css细节优化
+组件内部样式渲染，开始css module
+```js
+ {
+    test: /\.css$/,
+    use: ['style-loader', {
+        loader: 'css-loader',
+        options: {
+            modules: true  // 开启css module的支持
+        }
+    }]
+}
+```
+组件内使用模块化引入css的方式
+```js
+import React from 'react'
+import styles from './about.css'
+function About(props) {
+    return <div className={styles.title}>关于页面</div>
+}
+
+export default About
+```
+### 14、puppeteer实现ssr

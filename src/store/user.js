@@ -1,6 +1,3 @@
-import axios from 'axios'
-import { host } from '../config/index'
-
 //action type
 const USER_INFO = 'USER/USER_INFO'
 
@@ -16,8 +13,8 @@ export const userReducer = (state = defaultState, action) => {
     }
 }
 export const getUserInfo = () => {
-    return (dispatch) => {
-        return axios.get(`${host}/api/user/info`).then(res => {
+    return (dispatch, getState, $axios) => {
+        return $axios.get('/api/user/info').then(res => {
             const { data } = res.data
             dispatch({ type: USER_INFO, userinfo: data })
         }).catch(e => {

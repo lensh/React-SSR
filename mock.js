@@ -16,7 +16,7 @@ app.get('/api/course/list', (req, res) => {
         ]
     })
 })
-app.get('/api/user/info1', (req, res) => {
+app.get('/api/user/info', (req, res) => {
     // res.setHeader('Access-Control-Allow-Origin','*')
     // res.setHeader('Access-Control-Allow-Methods','GET,POST,DELETE,PUT')
     // res.setHeader('Content-Type','application/json')

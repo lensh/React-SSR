@@ -15,4 +15,9 @@ const page =
             {routes.map(route => <Route {...route}></Route>)}
         </BrowserRouter>
     </Provider>
-ReactDom.hydrate(page, document.getElementById("root"))
+
+if (window.__store) {
+    ReactDom.hydrate(page, document.getElementById("root"))
+} else {
+    ReactDom.render(page, document.getElementById("root"))
+}

@@ -1,6 +1,3 @@
-import axios from 'axios'
-import { host } from '../config/index'
-
 //action type
 const GET_LIST = 'INDEX/GET_LIST'
 
@@ -16,8 +13,8 @@ export const indexReducer = (state = defaultState, action) => {
     }
 }
 export const getIndexList = () => {
-    return (dispatch) => {
-        return axios.get(`${host}/api/course/list`).then(res => {
+    return (dispatch, getState, $axios) => {
+        return $axios.get('/api/course/list').then(res => {
             const { list } = res.data
             dispatch({ type: GET_LIST, list })
         }).catch(e => {
